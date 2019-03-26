@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      #bluescreen {
+        display: none;
+        width: 100vw;
+        height: 100vh;
+      }
+      .errorIcon{
+        z-index: 99;
+        display: none;
+        border: solid;
+        border-color: green;
+        padding-left: 5px;
+        padding-right: 5px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        color:green;
+        font-size: 1.5rem;
+        font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        background-color: black;
+        margin-top:-50px;
+        margin-left:-100px;
+      }
+    </style>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <div class="errorIcon">SYSTEM FAILURE</div>
+
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.6/p5.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+    var streams = [];
+    var fadeInterval = 2.6;
+    var symbolSize = 24;
+
+    var stopFlag = false,
+        raindown = true,
+        intervalWorker;
+
+    function setup() {
+      createCanvas(
+        window.innerWidth,
+        window.innerHeight
+      );
+      background(0);
+
+      var x = 0;
+      for (var i = 0; i <= width / symbolSize; i++) {
+        var stream = new Stream();
+        stream.generateSymbols(x, random(-2000, 0));
+        streams.push(stream);
+        x += symbolSize
+      }
+
+      textFont('Consolas');
+      textSize(symbolSize);
+    }
+
+    function draw() {
+      if(stopFlag) return;
+      background(0, 150);
+      streams.forEach(function(stream) {
+        stream.render();
+      });
+    }
+
+    function Symbol(x, y, speed, first, opacity) {
+      this.x = x;
+      this.y = y;
+      this.value;
+
+      this.speed = speed;
+      this.first = first;
+      this.opacity = opacity;
+
+      this.switchInterval = round(random(12, 20));
+
+      this.setToRandomSymbol = function() {
+        // var charType = round(random(0, 15));
+        if (frameCount % this.switchInterval == 0) {
+          // if (charType > 1) {
+          //   // set it to Katakana
+          //   this.value = String.fromCharCode(
+          //     0x30A0 + round(random(0, 96))
+          //   );
+          // } else {
+          //   // set it to numeric
+          //   this.value = round(random(0,9));
+          // }
+          this.value = round(random(0,1));
+        }
+      }
+
+      this.rain = function() {
+        if(raindown) {
+          this.y = (this.y >= height) ? 0 : this.y += this.speed;
+        } else {
+          this.y = (this.y <= 0) ? height : this.y -= this.speed;
+        }
+      }
+
+    }
+
+    function Stream() {
+      this.symbols = [];
+      this.totalSymbols = round(random(15, 35));
+      this.speed = random(3, 10);
+
+      this.generateSymbols = function(x, y) {
+        var opacity = 255;
+        var first = round(random(0, 4)) == 1;
+        for (var i =0; i <= this.totalSymbols; i++) {
+          symbol = new Symbol(
+            x,
+            y,
+            this.speed,
+            first,
+            opacity
+          );
+          symbol.setToRandomSymbol();
+          this.symbols.push(symbol);
+          opacity -= (255 / this.totalSymbols) / fadeInterval;
+          y -= symbolSize;
+          first = false;
+        }
+      }
+
+      this.render = function() {
+        this.symbols.forEach(function(symbol) {
+          if (symbol.first) {
+            fill(140, 255, 170, symbol.opacity);
+          } else {
+            fill(0, 255, 70, symbol.opacity);
+          }
+          text(symbol.value, symbol.x, symbol.y);
+          symbol.rain();
+          symbol.setToRandomSymbol();
+        });
+      }
+
+      this.reverse = function() {
+        this.symbols.forEach(function(symbol) {
+          if(raindown) {
+            if(symbol.y > height) {
+              if(symbol.y > height * 2) {
+                symbol.y = -symbol.y;
+              }
+              symbol.y -= height;
+            }
+          } else {
+            if(symbol.y < 0) {
+              if(symbol.y < -height) {
+                symbol.y = -symbol.y;
+              }
+              symbol.y += height;
+            }
+          }
+        });
+      }
+    }
+
+    $(document).on('keydown', function(e){
+      console.log(e.keyCode)
+      switch(e.keyCode) {
+        // s
+        case 83:
+          stopFlag = true;
+          intervalWorker = setInterval(() => {
+            $('.errorIcon').toggle();
+          }, 1000);
+        break;
+        // g
+        case 71:
+          raindown = true;
+          clearInterval(intervalWorker);
+          $('.errorIcon').hide();
+          streams.forEach(function(stream) {
+            stream.reverse();
+          });
+          stopFlag = false;
+          break;
+        // r
+        case 82:
+          raindown = false;
+          clearInterval(intervalWorker);
+          $('.errorIcon').hide();
+          streams.forEach(function(stream) {
+            stream.reverse();
+          });
+          stopFlag = false;
+          break;
+      }
+    });
+    </script>
+  </body>
+</html>
+
